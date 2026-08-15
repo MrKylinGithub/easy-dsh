@@ -100,6 +100,22 @@ Windows（x64）安装包并发布到 Releases（附 SHA-256 校验）。
   `~/.dsh/desktop-versions/dsh-<version>/`（走 npmmirror）
 - 日志：`~/.dsh/desktop.log`（壳自身）、`~/.dsh/desktop-server.log`（dsh web 输出）
 
+## 自带插件
+
+EasyDSH 首次运行会把一套精选插件播种进共享的 web profile
+（`bundled-plugins/manifest.json` —— registry 版本号或 App 内置的 tarball）：
+
+- [dsh-file-review](https://github.com/left0ver/dsh-file-review) —— 查看/回退
+  agent 文件改动的 diff 面板
+- [ModLens](https://github.com/liustack/modlens)（`@liustack/modlens`）——
+  纯文本模型的插件式视觉：粘贴图片即读，走多模态引擎，无需文件中转
+
+profile 的 bundle 层里缺少的插件会通过 pnpm 安装（经 `npm exec` 运行，
+无需全局 pnpm）并追加进 `dsh.profile.bundles`；已存在的插件保持不动，因此
+首次之后该步骤秒级空转。要加自己的插件：往
+`bundled-plugins/manifest.json` 加一个 tarball（或 registry 的
+`name@version`）条目并重新打包即可。
+
 ## 插件兼容性
 
 EasyDSH 与你的终端 dsh 共享同一份 `~/.dsh`。profile 里的外部插件从**宿主安装**

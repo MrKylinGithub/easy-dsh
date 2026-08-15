@@ -2,7 +2,7 @@
 English · [简体中文](README.zh.md)
 
 <div align="center">
-<img src='docs/main-view.png' />
+<img src='./docs/main-view.png' />
 </div>
 
 **A desktop shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — double-click to launch `dsh web` in a native window, no terminal, no port bookkeeping.**
@@ -94,6 +94,24 @@ First run generates `~/.dsh/desktop.json`:
 - The official sources install `@deepseek-ai/dsh@<version>` into
   `~/.dsh/desktop-versions/dsh-<version>/` (npmmirror) on first use.
 - Logs: `~/.dsh/desktop.log` (shell), `~/.dsh/desktop-server.log` (dsh web).
+
+## Bundled plugins
+
+EasyDSH seeds the shared web profile with a curated plugin set on first run
+(`bundled-plugins/manifest.json` — registry versions or tarballs shipped
+inside the app):
+
+- [dsh-file-review](https://github.com/left0ver/dsh-file-review) — diff panel
+  for reviewing and reverting agent file changes
+- [ModLens](https://github.com/liustack/modlens) (`@liustack/modlens`) —
+  plug-in vision for text-only models: paste an image and it is read through
+  a multimodal engine, no file round-trip
+
+Each plugin missing from the profile's bundle layer is installed via pnpm
+(through `npm exec`, no global pnpm needed) and appended to
+`dsh.profile.bundles`; existing plugins are left untouched, so the step is a
+fast no-op afterwards. To add your own: drop a tarball (or a registry
+`name@version`) into `bundled-plugins/manifest.json` and rebuild.
 
 ## Plugin compatibility
 

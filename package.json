@@ -19,6 +19,7 @@
       "src/**/*",
       "build/icon.png",
       "builtin-dsh/**",
+      "bundled-plugins/**",
       "package.json"
     ],
     "mac": {

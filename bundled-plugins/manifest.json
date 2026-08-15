@@ -1,0 +1,12 @@
+{
+  "plugins": [
+    {
+      "name": "dsh-file-review",
+      "registry": "0.3.1"
+    },
+    {
+      "name": "@liustack/modlens",
+      "registry": "3.16.6"
+    }
+  ]
+}

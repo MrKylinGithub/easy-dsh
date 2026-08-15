@@ -1115,6 +1115,138 @@ const isAlive = (pid) => {
   }
 }
 
+/* ----------------------- bundled plugins seeding ----------------------- */
+
+/** pnpm settings for a profile dir, mirroring dsh's own profile template. */
+const PROFILE_PNPM_WORKSPACE = `packages:
+  - .
+
+nodeLinker: hoisted
+autoInstallPeers: false
+# Freshly published plugin releases skip pnpm's minimum release age gate.
+minimumReleaseAgeExclude:
+  - dsh-file-review
+  - '@liustack/modlens'
+`
+
+/** The web profile's base bundles (dsh's shipped template). */
+const WEB_PROFILE_BUNDLES = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app']
+
+/**
+ * Initialize the web profile directory the way dsh itself does (manifest,
+ * empty patch layers, pnpm settings), so seeding works on a machine where
+ * dsh has never booted yet.
+ * @param {string} dir - the profile directory.
+ */
+function initProfileDir(dir) {
+  if (existsSync(path.join(dir, 'package.json'))) return
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(
+    path.join(dir, 'package.json'),
+    `${JSON.stringify({
+      name: 'dsh-profile-web',
+      private: true,
+      dependencies: {},
+      dsh: { profile: { bundles: [...WEB_PROFILE_BUNDLES] } },
+    }, null, 2)}\n`,
+  )
+  writeFileSync(path.join(dir, 'cordis.yml'), '# dsh profile root — an empty entry list.\n[]\n')
+  writeFileSync(
+    path.join(dir, 'cordis.patch.yml'),
+    `# Your patch layer for this dsh profile, applied after every bundle layer.\n[]\n`,
+  )
+  writeFileSync(path.join(dir, 'pnpm-workspace.yaml'), PROFILE_PNPM_WORKSPACE)
+}
+
+/**
+ * Run `pnpm <args>` inside the profile directory through `npm exec` (npx
+ * semantics) so no global pnpm/corepack installation is required.
+ * @param {readonly string[]} args - pnpm arguments.
+ * @param {string} cwd - the profile directory.
+ * @returns {Promise<void>} resolves when pnpm exits 0.
+ */
+function runPnpmInProfile(args, cwd) {
+  const npmCli = resolveNpmCli()
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [npmCli ?? 'npm', 'exec', '--yes', '--package=pnpm@11.7.0', '--', 'pnpm', ...args],
+      {
+        cwd,
+        env: toolEnv({ FORCE_COLOR: '0' }),
+        stdio: ['ignore', 'pipe', 'pipe'],
+        ...(IS_WIN && { shell: true }),
+      },
+    )
+    let output = ''
+    child.stdout?.on('data', (chunk) => { output += chunk })
+    child.stderr?.on('data', (chunk) => { output += chunk })
+    child.on('error', reject)
+    child.on('exit', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`pnpm ${args.join(' ')} failed (exit ${code}):\n${output.slice(-2000)}`))
+    })
+  })
+}
+
+/**
+ * Seed the shared web profile with the plugins bundled inside the app:
+ * `bundled-plugins/manifest.json` lists them (registry versions or bundled
+ * tarballs). Each plugin missing from `dsh.profile.bundles` is installed via
+ * pnpm into the profile and appended to the bundle layer list when it
+ * declares `dsh.bundle`. Already-present plugins are left untouched, so the
+ * step is a fast no-op after the first run.
+ * @returns {Promise<void>}
+ */
+async function ensureBundledPlugins() {
+  const manifestPath = path.join(app.getAppPath(), 'bundled-plugins', 'manifest.json')
+  if (!existsSync(manifestPath)) return
+  const profileDir = path.join(DSH_HOME, 'profiles', 'web')
+  initProfileDir(profileDir)
+  const manifestPathInProfile = path.join(profileDir, 'package.json')
+
+  let manifest
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  } catch (error) {
+    log(`bundled-plugins manifest unreadable: ${error instanceof Error ? error.message : String(error)}`)
+    return
+  }
+  const plugins = Array.isArray(manifest.plugins) ? manifest.plugins : []
+
+  for (const entry of plugins) {
+    const name = typeof entry?.name === 'string' ? entry.name : null
+    if (!name) continue
+    const profile = JSON.parse(readFileSync(manifestPathInProfile, 'utf8'))
+    const bundles = Array.isArray(profile.dsh?.profile?.bundles) ? profile.dsh.profile.bundles : []
+    if (bundles.includes(name)) {
+      log(`bundled plugin ${name} already present`)
+      continue
+    }
+    const spec = typeof entry.tarball === 'string'
+      ? path.join(app.getAppPath(), 'bundled-plugins', entry.tarball)
+      : typeof entry.registry === 'string' ? `${name}@${entry.registry}` : name
+    log(`bundled plugin ${name} missing — installing ${spec}`)
+    await runPnpmInProfile(['add', spec], profileDir)
+    // Append to the bundle layer list when the package declares a bundle patch.
+    const installedManifest = path.join(profileDir, 'node_modules', name, 'package.json')
+    try {
+      const installed = JSON.parse(readFileSync(installedManifest, 'utf8'))
+      if (installed.dsh?.bundle?.patch !== undefined) {
+        const after = JSON.parse(readFileSync(manifestPathInProfile, 'utf8'))
+        const current = Array.isArray(after.dsh?.profile?.bundles) ? after.dsh.profile.bundles : []
+        if (!current.includes(name)) {
+          after.dsh.profile.bundles = [...current, name]
+          writeFileSync(manifestPathInProfile, `${JSON.stringify(after, null, 2)}\n`)
+          log(`bundled plugin ${name} joined the bundle layer`)
+        }
+      }
+    } catch (error) {
+      log(`could not reconcile bundle layer for ${name}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+}
+
 async function boot() {
   mkdirSync(DSH_HOME, { recursive: true })
   const config = loadConfig()
@@ -1123,10 +1255,16 @@ async function boot() {
   launchConfig = config
 
   try {
+    // Seed bundled plugins while the user decides in the picker; failures
+    // never block the app (the plugins are a convenience, not a dependency).
+    const seedPromise = ensureBundledPlugins().catch((error) => {
+      log(`bundled plugins seeding failed: ${error instanceof Error ? error.message : String(error)}`)
+    })
     const source = await pickSource(config.dshSource, config.dshSourceFromCli)
     if (source.id !== config.dshSource) rememberSourceSelection(source.id)
     log(`using dsh source: ${source.id}`)
     launchSource = source
+    await seedPromise
 
     const first = new ServerManager(config, source)
     servers.add(first)
