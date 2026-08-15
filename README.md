@@ -1,112 +1,123 @@
-# EasyDSH（easy-dsh）
+# EasyDSH
 
-DeepSeek Harness 的桌面端壳（Desktop shell）：一个命令/双击启动，自动拉起 `dsh web` 服务并在原生窗口里显示 Web GUI。**同一套代码，macOS 和 Windows 都支持。**
+<div align="center">
 
-## 为什么是 Electron
+**A desktop shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — double-click to launch `dsh web` in a native window, no terminal, no port bookkeeping.**
 
-- dsh 本身就是 Node + pnpm 生态：Electron 主进程就是 Node，能直接 `spawn('pnpm', ['dsh', 'web', ...])`，不用像 Tauri 那样为外部进程编排额外引入 Rust 工具链。
-- 渲染引擎就是 Chromium，和浏览器里的 dsh 页面渲染效果完全一致。
-- electron-builder 一套配置打 macOS `.dmg` 和 Windows 安装包（`nsis`）。
+English · [简体中文](README.zh.md)
 
-## 行为
+</div>
 
-1. **永远使用自己的端口和进程**：启动即从首选端口（默认 3081，可配置）
-   向上扫描第一个可绑定端口（+1、+2…最多 +100），绝不附着/复用已有
-   dsh——选择器选了什么版本，窗口里就是什么版本。你终端里的 dsh 不受影响，
-   两者共享同一份 `~/.dsh` 数据。
-2. **多窗口 = 多进程隔离**：菜单「文件 → 新建窗口」（⌘N）为每个窗口启动
-   一个独立的 dsh 进程 + 独立端口（+1 分配），共享同一个 `~/.dsh`——
-   会话/Key/配置全通，进程互不干扰。关闭窗口回收它专属的进程。
-3. 退出应用时，回收**自己拉起的全部**进程（`keepServerOnQuit` 时保留）。
-4. 单实例：重复启动只会聚焦已有窗口。
-5. 页面里外链（文档等）走系统默认浏览器打开。
-6. 无 Node/pnpm 环境也能跑：应用在 `~/.dsh/desktop-bin/` 生成 node/npm 垫片注入 PATH；源码运行优先用满足 dsh 引擎要求的**系统 Node**（dsh 的 tsx 加载链在部分 Node 大版本上有兼容问题），没有时才退回 Electron 内置 Node。
+> **Unofficial.** EasyDSH is an independent personal project, not affiliated with or endorsed by DeepSeek.
 
-## 使用
+## Features
 
-```sh
-cd easy-dsh
-npm install        # 首次
-npm start          # 开发运行（终端里能看到日志）
+- **Three launch sources, asked every time**
+  - **Built-in** — `@deepseek-ai/dsh@latest` bundled at build time, fully offline, seconds to start
+  - **Official latest** — resolves the newest published version at launch; installs once, tracks new releases automatically
+  - **Specify directory…** — run any local dsh checkout (e.g. your modified fork) from source
+- **Isolated multi-window (⌘N)** — every window gets its own dsh process and its own port, all sharing one `~/.dsh`: sessions, keys, settings and plugins are visible everywhere; close a window and its process is reclaimed.
+- **Always its own port** — never attaches to a running dsh. Scans upward (+1, +2…) from the preferred port (3081 by default), so the selected version is exactly what the window shows.
+- **Menu follows dsh** — app menu language tracks dsh's `locale.preference`; window title bar follows the UI theme; the version picker follows the OS language.
+- **No Node/pnpm required** — shims are generated under `~/.dsh/desktop-bin/`; built-in/latest run on Electron's bundled Node, source runs prefer a system Node that satisfies dsh's engines.
+- **Copy & paste everywhere** — standard Edit menu plus right-click clipboard menu.
+- **Friendly error window** — fixed-size, scrollable, with a working close button even for the longest stack traces.
 
-# 打包
-npm run dist:mac   # macOS: dist/EasyDSH-0.1.0-arm64.dmg
-npm run dist:win   # Windows: 需要 wine（或直接在 Windows 机器上跑）
-npm run dist       # 两者都打
+## Download
+
+Packaged builds are published on the [Releases](https://github.com/MrKylinGithub/easy-dsh/releases) page:
+
+| Platform | Asset |
+| --- | --- |
+| macOS (Apple Silicon) | `EasyDSH-0.1.0-arm64.dmg` |
+| Windows (x64) | *coming soon* |
+
+First launch on macOS: right-click → Open (unsigned build).
+
+## How it works
+
+```
+Window A ── dsh process A ── port 3081 ─┐
+Window B ── dsh process B ── port 3082 ─┼─ one shared ~/.dsh
+Window C ── dsh process C ── port 3083 ─┘
 ```
 
-命令行覆盖（`npm start -- --port 8080`）：
+1. Launch → the version picker asks which source to use (the previous choice is marked "Last used"; an explicit `--dsh <choice>` skips it).
+2. The app picks the first bindable port from the preferred one upward.
+3. Each window owns its dsh process; quitting reclaims every process the app started. Your terminal dsh is never touched.
 
-| 参数 | 作用 |
+## Build from source
+
+```sh
+git clone https://github.com/MrKylinGithub/easy-dsh.git
+cd easy-dsh
+npm install        # first time
+npm start          # dev run
+
+npm run dist:mac   # macOS → dist/EasyDSH-0.1.0-arm64.dmg
+npm run dist:win   # Windows → needs wine or a Windows machine
+npm run dist       # both
+```
+
+`scripts/build.mjs` pins downloads to npmmirror mirrors and auto-downloads the
+electron-builder icons toolset (sha256-verified), so builds do not stall on
+GitHub downloads.
+
+CLI overrides (`npm start -- --port 8080`):
+
+| Flag | Meaning |
 | --- | --- |
-| `--dsh <选择>` | 本次启动用哪个来源：`builtin` / `latest` / `dir:<路径>` |
-| `--repo <path>` | dsh checkout 目录 |
-| `--host <ip>` | 监听地址（默认 127.0.0.1） |
-| `--port <n>` | 端口（默认 3081） |
-| `--keep-server` | 退出应用时不关掉服务 |
-| `--devtools` | 打开窗口时自动开开发者工具 |
+| `--dsh <choice>` | `builtin` / `latest` / `dir:<path>` — skips the picker |
+| `--host <ip>` | bind host (default 127.0.0.1) |
+| `--port <n>` | preferred port (default 3081) |
+| `--keep-server` | leave servers running on quit |
+| `--devtools` | open DevTools per window |
 
-## 配置
+## Configuration
 
-首次运行自动生成 `~/.dsh/desktop.json`：
+First run generates `~/.dsh/desktop.json`:
 
 ```json
 {
-  "repo": "/Users/<you>/Documents/GitHub/ai-learning/deepseek-harness",
+  "repo": "/path/to/deepseek-harness",
   "host": "127.0.0.1",
   "port": 3081,
   "keepServerOnQuit": false,
-  "dshSource": "dir:/Users/<you>/Documents/GitHub/ai-learning/deepseek-harness"
+  "dshSource": "dir:/path/to/deepseek-harness"
 }
 ```
 
-### 启动时的 dsh 版本选择（每次启动都弹出）
+- The official sources install `@deepseek-ai/dsh@<version>` into
+  `~/.dsh/desktop-versions/dsh-<version>/` (npmmirror) on first use.
+- Logs: `~/.dsh/desktop.log` (shell), `~/.dsh/desktop-server.log` (dsh web).
 
-**每次启动都会弹出选择窗口**，三个选项：
+## Plugin compatibility
 
-1. **内置版本** — `@deepseek-ai/dsh@latest` 在打包时装入 `builtin-dsh/` 随 App
-   分发，**完全离线**、秒启动，无需任何下载
-2. **官方最新版（latest）** — 启动时从 registry 解析最新版号（npmmirror），
-   首次自动安装到 `~/.dsh/desktop-versions/dsh-<version>/`，之后离线秒启动；
-   新版本发布后下次启动自动跟随。npx 的语义，但避开了 npx 每次重新解析
-   900+ 依赖的分钟级开销
-3. **指定目录…** — 点击条目直接用上次选过的目录进入应用（描述区显示该目录
-   路径），点条目右侧的文件夹图标才弹出目录选择器；从源码运行
+EasyDSH shares one `~/.dsh` with your terminal dsh. Out-of-tree profile
+plugins resolve `@deepseek-ai/*` packages from the **host installation** —
+declare them as `peerDependencies` (e.g. `">=0.1.0-rc.5 <0.2.0"`) and install
+the plugin as an npm tarball, never as a directory `link:`. Bundling your own
+dsh copies breaks this contract.
 
-选中的来源记为 `dshSource`（`builtin` / `latest` / `dir:<path>`），下次启动
-选择窗口会把它标成「上次使用」，但**仍会弹出让你确认**：
+## Security
 
-- 命令行 `--dsh latest` / `--dsh dir:<path>` 显式指定时跳过选择窗口
-  （脚本/自动化用）
-- 菜单「服务 → 切换 dsh 版本…」重启并进入选择窗口
+This repository contains **no keys**. Your API credentials live in
+`~/.dsh/.credentials.yaml`, managed by dsh itself. `~/.dsh/desktop.json`
+holds only paths and ports; runtime logs stay local.
 
-菜单「服务」里有「打开配置文件」「打开服务端日志」快捷入口。日志文件：
-
-- `~/.dsh/desktop.log` — 桌面端自身日志
-- `~/.dsh/desktop-server.log` — dsh web 服务输出
-
-## 目录结构
+## Layout
 
 ```
 easy-dsh/
-  src/main.js      # Electron 主进程：配置、服务拉起/附着/回收、窗口、主题同步
-  scripts/build.mjs# 打包入口：镜像加速 + icons 工具集自动下载（sha256 校验）
-  build/           # 应用图标源文件（icon.svg → icon.png）
-  package.json     # electron-builder 打包配置（mac dmg / win nsis）
+  src/main.js      # Electron main: picker, servers, windows, theme/locale sync
+  scripts/build.mjs# packaging entry: mirrors + icons toolset auto-download
+  build/           # app icon sources (icon.svg → icon.png)
+  builtin-dsh/     # bundled @deepseek-ai/dsh (built at dist time, gitignored)
+  package.json     # electron-builder config (mac dmg / win nsis), asar:false
 ```
 
-## 对外分享 / 安全
+## License
 
-这个项目**不包含任何密钥**，可以直接开源分享：
-
-- 全部代码只做「拉起 dsh web + 显示页面」，不接触 API 凭证；
-- 你的 DeepSeek API Key 存在 **`~/.dsh/.credentials.yaml`（家目录）**，由 dsh 本体管理，和本项目、和分享出去的代码完全隔离；
-- 运行期配置 `~/.dsh/desktop.json` 只有 repo 路径/端口，没有敏感信息；
-- 运行日志 `~/.dsh/desktop*.log` 里可能有会话内容，只在你本机，分享前无需处理（除非你手动把日志文件拷进仓库）。
-
-分享前的建议：
-
-1. `.gitignore` 已排除 `node_modules/`、`dist/`、`tools/`（第三方构建工具缓存，克隆后会自动重新下载）；
-2. 建议加一个 `LICENSE`（如 MIT）再公开；
-3. 图标使用了 DeepSeek 官方仓库的 logo 素材（`deepseek-harness/website/public/favicon.svg`），如公开发布请注明是**非官方**的个人封装项目。
-
+[MIT](LICENSE). The app icon uses the DeepSeek logo mark from the
+MIT-licensed [deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)
+repository; EasyDSH itself is not a DeepSeek product.
