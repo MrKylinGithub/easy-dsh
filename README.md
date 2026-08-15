@@ -1,12 +1,11 @@
 # EasyDSH
+English · [简体中文](README.zh.md)
 
 <div align="center">
 <img src='docs/main-view.png' />
 </div>
 
 **A desktop shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — double-click to launch `dsh web` in a native window, no terminal, no port bookkeeping.**
-
-English · [简体中文](README.zh.md)
 
 
 > **Unofficial.** EasyDSH is an independent personal project, not affiliated with or endorsed by DeepSeek.

@@ -1,12 +1,11 @@
 # EasyDSH
+[English](README.md) · 简体中文
 
 <div align="center">
 <img src='docs/main-view.png' />
 </div>
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的桌面端壳——双击启动 `dsh web` 原生窗口，不用终端、不用管端口。**
-
-[English](README.md) · 简体中文
 
 
 > **非官方**：EasyDSH 是个人独立项目，与 DeepSeek 无隶属或背书关系。
