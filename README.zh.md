@@ -1,20 +1,15 @@
 # EasyDSH
 
 <div align="center">
+<img src='docs/main-view.png' />
+</div>
 
 **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的桌面端壳——双击启动 `dsh web` 原生窗口，不用终端、不用管端口。**
 
 [English](README.md) · 简体中文
 
-</div>
 
 > **非官方**：EasyDSH 是个人独立项目，与 DeepSeek 无隶属或背书关系。
-
-## 截图
-
-![版本选择窗口（跟随系统语言）](docs/version-select.png)
-
-![主窗口](docs/main-view.png)
 
 ## 功能
 
@@ -22,6 +17,7 @@
   - **内置版本** — 打包时内置 `@deepseek-ai/dsh@latest`，完全离线、秒启动
   - **官方最新版** — 启动时解析最新发布版号，首次自动安装，之后自动跟随新版本
   - **指定目录…** — 从任意本地 dsh checkout（比如你的魔改 fork）源码运行
+  ![版本选择窗口（跟随系统语言）](docs/version-select.png)
 - **多窗口隔离（⌘N）** — 每个窗口一个独立 dsh 进程 + 独立端口，共享同一个
   `~/.dsh`：会话、Key、设置、插件全部互通；关窗口即回收它专属的进程
 - **永远用自己的端口** — 绝不附着已有 dsh。从首选端口（默认 3081）向上扫描

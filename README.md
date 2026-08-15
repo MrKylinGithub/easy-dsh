@@ -1,27 +1,22 @@
 # EasyDSH
 
 <div align="center">
+<img src='docs/main-view.png' />
+</div>
 
 **A desktop shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — double-click to launch `dsh web` in a native window, no terminal, no port bookkeeping.**
 
 English · [简体中文](README.zh.md)
 
-</div>
 
 > **Unofficial.** EasyDSH is an independent personal project, not affiliated with or endorsed by DeepSeek.
 
-## Screenshots
-
-![Version picker (follows the OS language)](docs/version-select.png)
-
-![Main window](docs/main-view.png)
-
 ## Features
-
 - **Three launch sources, asked every time**
   - **Built-in** — `@deepseek-ai/dsh@latest` bundled at build time, fully offline, seconds to start
   - **Official latest** — resolves the newest published version at launch; installs once, tracks new releases automatically
   - **Specify directory…** — run any local dsh checkout (e.g. your modified fork) from source
+  ![Version picker (follows the OS language)](docs/version-select.png)
 - **Isolated multi-window (⌘N)** — every window gets its own dsh process and its own port, all sharing one `~/.dsh`: sessions, keys, settings and plugins are visible everywhere; close a window and its process is reclaimed.
 - **Always its own port** — never attaches to a running dsh. Scans upward (+1, +2…) from the preferred port (3081 by default), so the selected version is exactly what the window shows.
 - **Menu follows dsh** — app menu language tracks dsh's `locale.preference`; window title bar follows the UI theme; the version picker follows the OS language.
