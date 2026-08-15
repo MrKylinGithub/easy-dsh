@@ -1,0 +1,6 @@
+node_modules/
+dist/
+tools/
+builtin-dsh/
+*.log
+.DS_Store

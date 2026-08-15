@@ -1,0 +1,42 @@
+{
+  "name": "easy-dsh",
+  "version": "0.1.0",
+  "description": "EasyDSH — a desktop shell for DeepSeek Harness: start `dsh web`, version selection, and isolated multi-window sessions (macOS + Windows).",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "node scripts/build.mjs --mac --win",
+    "dist:mac": "node scripts/build.mjs --mac",
+    "dist:win": "node scripts/build.mjs --win"
+  },
+  "build": {
+    "appId": "com.easydsh.desktop",
+    "productName": "EasyDSH",
+    "asar": false,
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "builtin-dsh/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3"
+  }
+}
