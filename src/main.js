@@ -27,6 +27,7 @@ import { createServer } from 'node:net'
 import {
   appendFileSync,
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -1125,6 +1126,7 @@ nodeLinker: hoisted
 autoInstallPeers: false
 # Freshly published plugin releases skip pnpm's minimum release age gate.
 minimumReleaseAgeExclude:
+  - dsh-better-sidebar
   - dsh-file-review
   - '@liustack/modlens'
 `
@@ -1227,7 +1229,17 @@ async function ensureBundledPlugins() {
       ? path.join(app.getAppPath(), 'bundled-plugins', entry.tarball)
       : typeof entry.registry === 'string' ? `${name}@${entry.registry}` : name
     log(`bundled plugin ${name} missing — installing ${spec}`)
-    await runPnpmInProfile(['add', spec], profileDir)
+    try {
+      await runPnpmInProfile(['add', spec], profileDir)
+    } catch (error) {
+      // pnpm may exit 1 on peer warnings while still installing the package;
+      // treat a resolvable install as success and keep going either way.
+      const landed = existsSync(path.join(profileDir, 'node_modules', name, 'package.json'))
+      log(landed
+        ? `bundled plugin ${name} installed despite a pnpm warning (${error instanceof Error ? error.message.split('\n')[0] : String(error)})`
+        : `bundled plugin ${name} install failed: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)
+      if (!landed) continue
+    }
     // Append to the bundle layer list when the package declares a bundle patch.
     const installedManifest = path.join(profileDir, 'node_modules', name, 'package.json')
     try {
@@ -1247,6 +1259,39 @@ async function ensureBundledPlugins() {
   }
 }
 
+/**
+ * Seed user-level agent presets bundled inside the app: each preset id in
+ * `bundled-plugins/manifest.json` "presets" is copied from
+ * `bundled-plugins/presets/<id>/` into `~/.dsh/.agent-presets/<id>/` when
+ * missing (existing presets are never overwritten).
+ * @returns {Promise<void>}
+ */
+async function ensureBundledPresets() {
+  const manifestPath = path.join(app.getAppPath(), 'bundled-plugins', 'manifest.json')
+  if (!existsSync(manifestPath)) return
+  let manifest
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  } catch {
+    return
+  }
+  const presets = Array.isArray(manifest.presets) ? manifest.presets : []
+  const presetRoot = path.join(DSH_HOME, '.agent-presets')
+  for (const id of presets) {
+    if (typeof id !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(id)) continue
+    const target = path.join(presetRoot, id)
+    if (existsSync(target)) continue
+    const source = path.join(app.getAppPath(), 'bundled-plugins', 'presets', id)
+    if (!existsSync(source)) continue
+    try {
+      cpSync(source, target, { recursive: true })
+      log(`bundled preset ${id} seeded into ${target}`)
+    } catch (error) {
+      log(`could not seed preset ${id}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+}
+
 async function boot() {
   mkdirSync(DSH_HOME, { recursive: true })
   const config = loadConfig()
@@ -1260,11 +1305,13 @@ async function boot() {
     const seedPromise = ensureBundledPlugins().catch((error) => {
       log(`bundled plugins seeding failed: ${error instanceof Error ? error.message : String(error)}`)
     })
+    const presetsPromise = ensureBundledPresets()
     const source = await pickSource(config.dshSource, config.dshSourceFromCli)
     if (source.id !== config.dshSource) rememberSourceSelection(source.id)
     log(`using dsh source: ${source.id}`)
     launchSource = source
     await seedPromise
+    await presetsPromise
 
     const first = new ServerManager(config, source)
     servers.add(first)

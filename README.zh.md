@@ -105,15 +105,18 @@ Windows（x64）安装包并发布到 Releases（附 SHA-256 校验）。
 EasyDSH 首次运行会把一套精选插件播种进共享的 web profile
 （`bundled-plugins/manifest.json` —— registry 版本号或 App 内置的 tarball）：
 
-- [dsh-file-review](https://github.com/left0ver/dsh-file-review) —— 查看/回退
-  agent 文件改动的 diff 面板
+- [dsh-better-sidebar](https://www.npmjs.com/package/dsh-better-sidebar) ——
+  类 VSCode 的右侧边栏（explorer / edit）
 - [ModLens](https://github.com/liustack/modlens)（`@liustack/modlens`）——
   纯文本模型的插件式视觉：粘贴图片即读，走多模态引擎，无需文件中转
+- [Anchored Standard](https://github.com/xiaobright/dsh-anchored-standard) ——
+  agent 预设：首请求用 Minimal 工具骨架，首次工具调用后展开完整 Standard
+  目录（以用户预设方式播种，UI 里可选）
 
 profile 的 bundle 层里缺少的插件会通过 pnpm 安装（经 `npm exec` 运行，
 无需全局 pnpm）并追加进 `dsh.profile.bundles`；已存在的插件保持不动，因此
-首次之后该步骤秒级空转。要加自己的插件：往
-`bundled-plugins/manifest.json` 加一个 tarball（或 registry 的
+首次之后该步骤秒级空转。预设则一次性复制进 `~/.dsh/.agent-presets/`。要加
+自己的插件：往 `bundled-plugins/manifest.json` 加一个 tarball（或 registry 的
 `name@version`）条目并重新打包即可。
 
 ## 插件兼容性

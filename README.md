@@ -101,17 +101,21 @@ EasyDSH seeds the shared web profile with a curated plugin set on first run
 (`bundled-plugins/manifest.json` — registry versions or tarballs shipped
 inside the app):
 
-- [dsh-file-review](https://github.com/left0ver/dsh-file-review) — diff panel
-  for reviewing and reverting agent file changes
+- [dsh-better-sidebar](https://www.npmjs.com/package/dsh-better-sidebar) —
+  VSCode-like right sidebar (explorer / edit)
 - [ModLens](https://github.com/liustack/modlens) (`@liustack/modlens`) —
   plug-in vision for text-only models: paste an image and it is read through
   a multimodal engine, no file round-trip
+- [Anchored Standard](https://github.com/xiaobright/dsh-anchored-standard) —
+  agent preset: Minimal tool-schema bootstrap, full Standard catalog after the
+  first durable tool call (seeded as a user preset, selectable in the UI)
 
 Each plugin missing from the profile's bundle layer is installed via pnpm
 (through `npm exec`, no global pnpm needed) and appended to
 `dsh.profile.bundles`; existing plugins are left untouched, so the step is a
-fast no-op afterwards. To add your own: drop a tarball (or a registry
-`name@version`) into `bundled-plugins/manifest.json` and rebuild.
+fast no-op afterwards. Presets are copied into `~/.dsh/.agent-presets/` once.
+To add your own: drop a tarball (or a registry `name@version`) into
+`bundled-plugins/manifest.json` and rebuild.
 
 ## Plugin compatibility
 
