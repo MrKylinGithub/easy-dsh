@@ -799,55 +799,6 @@ function escapeHtml(text) {
 }
 
 /**
- * macOS: make the window content extend into the title bar area (the page's
- * own background becomes the title bar color) and pad the dsh sidebar top so
- * the traffic lights never cover the brand row. The padding mirrors what the
- * official DSH Desktop patches into the same stylesheet; the hashed CSS-module
- * class names are discovered at runtime from the injected stylesheet.
- * @param {BrowserWindow} win - the window whose page to adjust.
- */
-function injectTitlebarSpacing(win) {
-  if (!IS_MAC) return
-  win.webContents.executeJavaScript(`(() => {
-    if (document.getElementById('easydsh-titlebar-spacing')) return
-    for (const sheet of document.styleSheets) {
-      let rules
-      try { rules = sheet.cssRules } catch { continue }
-      for (const rule of rules) {
-        const text = rule.cssText || ''
-        if (!text.includes('dsh-sidebar-inline-padding')) continue
-        const root = (text.match(/\\.([\\w-]+_root)\\{/) || [])[1]
-        const collapsed = (text.match(/\\.([\\w-]+_collapsed)/) || [])[1]
-        if (!root) continue
-        // Generous top padding so the floating traffic lights never crowd
-        // the brand row.
-        const style = document.createElement('style')
-        style.id = 'easydsh-titlebar-spacing'
-        style.textContent =
-          '.' + root + ':not(.' + (collapsed || 'easydsh-none') + '){padding-top:40px}' +
-          (collapsed && navigator.userAgent.includes('Macintosh')
-            ? '.' + root + '.' + collapsed + '{padding:54px 22px 6px}' : '')
-        document.head.appendChild(style)
-        // A drag strip inside the sidebar's top padding: the native drag
-        // region only covers the traffic-light row, this makes the whole
-        // padded strip draggable without blocking any controls below it.
-        const sidebar = document.querySelector('.' + root)
-        if (sidebar) {
-          const drag = document.createElement('div')
-          drag.id = 'easydsh-drag-strip'
-          drag.style.cssText =
-            'position:absolute;top:0;left:0;right:0;height:32px;-webkit-app-region:drag;z-index:5'
-          sidebar.insertBefore(drag, sidebar.firstChild)
-        }
-        return
-      }
-    }
-  })()`).catch((error) => {
-    log(`titlebar spacing injection failed: ${error instanceof Error ? error.message : String(error)}`)
-  })
-}
-
-/**
  * Open one app window onto `url`, served by `owner` (its own dsh process).
  * Closing the window stops that process when nothing else keeps it.
  * @param {string} url - the dsh web UI endpoint.
@@ -868,9 +819,6 @@ function createWindow(url, owner) {
     title: APP_TITLE,
     backgroundColor: THEME_DARK_BG,
     show: false,
-    // macOS: the page background extends into the title bar area so both
-    // share one color; the traffic lights float over the padded sidebar top.
-    ...(IS_MAC && { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 16, y: 16 } }),
     ...(IS_WIN && existsSync(iconPath) && { icon: iconPath }),
     webPreferences: {
       contextIsolation: true,
@@ -907,7 +855,6 @@ function createWindow(url, owner) {
     log('page load finished — starting theme sync')
     applyPageTheme(win)
     syncMenuLanguage()
-    injectTitlebarSpacing(win)
     if (themePoll === null) {
       themePoll = setInterval(() => {
         applyPageTheme(win)
