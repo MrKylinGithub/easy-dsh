@@ -67,6 +67,10 @@ npm run dist       # 两者都打
 `scripts/build.mjs` 将下载固定到 npmmirror 镜像，并自动下载 electron-builder
 icons 工具集（sha256 校验），构建不会卡在 GitHub 下载。
 
+**发版**：push 一个 `v*` tag 即触发 GitHub Actions
+（`.github/workflows/release.yml`），自动构建 macOS（x64 + arm64）与
+Windows（x64）安装包并发布到 Releases（附 SHA-256 校验）。
+
 命令行覆盖（`npm start -- --port 8080`）：
 
 | 参数 | 作用 |

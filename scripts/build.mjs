@@ -29,6 +29,8 @@ const TOOLSET_URL =
   `https://cdn.npmmirror.com/binaries/electron-builder-binaries/${TOOLSET_VERSION}/icons-bundle.tar.gz`
 const TOOLSET_DIR = fileURLToPath(new URL('../tools/icons/', import.meta.url))
 const BUNDLE_DIR = path.join(TOOLSET_DIR, 'icons-bundle')
+// Windows resolves .cmd/.exe only through a shell.
+const IS_WIN = process.platform === 'win32'
 
 async function ensureToolset() {
   if (existsSync(path.join(BUNDLE_DIR, 'icon-tool.js'))) return
@@ -65,6 +67,7 @@ if (!existsSync(BUILTIN_BIN)) {
     ['install', '--no-save', '--no-audit', '--no-fund', '--loglevel', 'error', '--prefix', BUILTIN_DIR, '@deepseek-ai/dsh@latest'],
     {
       stdio: 'inherit',
+      shell: IS_WIN,
       env: { ...process.env, npm_config_registry: process.env.NPM_CONFIG_REGISTRY || 'https://registry.npmmirror.com' },
     },
   )
@@ -82,6 +85,7 @@ process.env.CSC_IDENTITY_AUTO_DISCOVERY ??= 'false'
 
 const result = spawnSync('npx', ['electron-builder', ...process.argv.slice(2)], {
   stdio: 'inherit',
+  shell: IS_WIN,
   env: process.env,
 })
 process.exit(result.status ?? 1)

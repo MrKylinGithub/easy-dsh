@@ -63,6 +63,10 @@ npm run dist       # both
 electron-builder icons toolset (sha256-verified), so builds do not stall on
 GitHub downloads.
 
+**Releases**: pushing a `v*` tag triggers GitHub Actions
+(`.github/workflows/release.yml`) to build macOS (x64 + arm64) and Windows
+(x64) installers and publish them with SHA-256 checksums.
+
 CLI overrides (`npm start -- --port 8080`):
 
 | Flag | Meaning |
