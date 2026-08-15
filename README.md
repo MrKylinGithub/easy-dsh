@@ -10,6 +10,12 @@ English · [简体中文](README.zh.md)
 
 > **Unofficial.** EasyDSH is an independent personal project, not affiliated with or endorsed by DeepSeek.
 
+## Screenshots
+
+![Version picker (follows the OS language)](docs/version-select.png)
+
+![Main window](docs/main-view.png)
+
 ## Features
 
 - **Three launch sources, asked every time**
@@ -115,6 +121,7 @@ holds only paths and ports; runtime logs stay local.
 easy-dsh/
   src/main.js      # Electron main: picker, servers, windows, theme/locale sync
   scripts/build.mjs# packaging entry: mirrors + icons toolset auto-download
+  docs/            # screenshots used by the README
   build/           # app icon sources (icon.svg → icon.png)
   builtin-dsh/     # bundled @deepseek-ai/dsh (built at dist time, gitignored)
   package.json     # electron-builder config (mac dmg / win nsis), asar:false

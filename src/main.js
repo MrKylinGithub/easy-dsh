@@ -828,6 +828,10 @@ function createWindow(url, owner) {
   windows.add(win)
   windowServers.set(win, owner)
 
+  // The dsh page sets document.title (its own branding); keep the EasyDSH
+  // window title instead.
+  win.on('page-title-updated', (event) => event.preventDefault())
+
   win.once('ready-to-show', () => win.show())
   win.on('closed', () => {
     windows.delete(win)

@@ -10,6 +10,12 @@
 
 > **非官方**：EasyDSH 是个人独立项目，与 DeepSeek 无隶属或背书关系。
 
+## 截图
+
+![版本选择窗口（跟随系统语言）](docs/version-select.png)
+
+![主窗口](docs/main-view.png)
+
 ## 功能
 
 - **三种启动来源，每次启动都问**
@@ -117,6 +123,7 @@ EasyDSH 与你的终端 dsh 共享同一份 `~/.dsh`。profile 里的外部插�
 easy-dsh/
   src/main.js      # Electron 主进程：选择器、服务、窗口、主题/语言同步
   scripts/build.mjs# 打包入口：镜像加速 + icons 工具集自动下载
+  docs/            # README 使用的截图
   build/           # 应用图标源文件（icon.svg → icon.png）
   builtin-dsh/     # 打包时内置的 @deepseek-ai/dsh（gitignore）
   package.json     # electron-builder 配置（mac dmg / win nsis），asar:false
