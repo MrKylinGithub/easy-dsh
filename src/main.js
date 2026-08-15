@@ -819,13 +819,26 @@ function injectTitlebarSpacing(win) {
         const root = (text.match(/\\.([\\w-]+_root)\\{/) || [])[1]
         const collapsed = (text.match(/\\.([\\w-]+_collapsed)/) || [])[1]
         if (!root) continue
+        // Generous top padding so the floating traffic lights never crowd
+        // the brand row.
         const style = document.createElement('style')
         style.id = 'easydsh-titlebar-spacing'
         style.textContent =
-          '.' + root + ':not(.' + (collapsed || 'easydsh-none') + '){padding-top:32px}' +
+          '.' + root + ':not(.' + (collapsed || 'easydsh-none') + '){padding-top:40px}' +
           (collapsed && navigator.userAgent.includes('Macintosh')
-            ? '.' + root + '.' + collapsed + '{padding:46px 22px 6px}' : '')
+            ? '.' + root + '.' + collapsed + '{padding:54px 22px 6px}' : '')
         document.head.appendChild(style)
+        // A drag strip inside the sidebar's top padding: the native drag
+        // region only covers the traffic-light row, this makes the whole
+        // padded strip draggable without blocking any controls below it.
+        const sidebar = document.querySelector('.' + root)
+        if (sidebar) {
+          const drag = document.createElement('div')
+          drag.id = 'easydsh-drag-strip'
+          drag.style.cssText =
+            'position:absolute;top:0;left:0;right:0;height:32px;-webkit-app-region:drag;z-index:5'
+          sidebar.insertBefore(drag, sidebar.firstChild)
+        }
         return
       }
     }
