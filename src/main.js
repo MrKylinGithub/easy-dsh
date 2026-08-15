@@ -828,9 +828,12 @@ function createWindow(url, owner) {
   windows.add(win)
   windowServers.set(win, owner)
 
-  // The dsh page sets document.title (its own branding); keep the EasyDSH
-  // window title instead.
-  win.on('page-title-updated', (event) => event.preventDefault())
+  // The dsh page sets document.title ("<conversation> - DeepSeek Harness");
+  // rewrite it to "<EasyDSH> - <conversation>" instead.
+  win.on('page-title-updated', (event) => {
+    event.preventDefault()
+    win.setTitle(formatWindowTitle(event.title))
+  })
 
   win.once('ready-to-show', () => win.show())
   win.on('closed', () => {
@@ -927,6 +930,14 @@ async function openNewWindow() {
 
 /** User-facing product name (window title, menus, error dialogs). */
 const APP_TITLE = 'EasyDSH'
+
+/** Rewrite the page title into `EasyDSH - <conversation>` form. */
+function formatWindowTitle(pageTitle) {
+  const name = String(pageTitle ?? '')
+    .replace(/\s*-\s*DeepSeek Harness\s*$/i, '')
+    .trim()
+  return name ? `${APP_TITLE} - ${name}` : APP_TITLE
+}
 
 /** Menu strings for the two dsh UI languages. */
 const MENU_L10N = {
